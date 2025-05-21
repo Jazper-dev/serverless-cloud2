@@ -5,11 +5,25 @@ pipeline {
         COMPOSE_FILE = 'compose.yml'
     }
 
-
     stages {
         stage('Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/Tawunchai/serverless-cloud.git'
+            }
+        }
+
+        stage('Check prometheus.yml') {
+            steps {
+                script {
+                    def filePath = '/var/jenkins_home/workspace/C4/prometheus.yml'
+                    
+                    // เช็คว่าไฟล์มีอยู่หรือไม่
+                    if (fileExists(filePath)) {
+                        echo "File exists: ${filePath}"
+                    } else {
+                        error "File does not exist: ${filePath}. Please check the file path."
+                    }
+                }
             }
         }
 
