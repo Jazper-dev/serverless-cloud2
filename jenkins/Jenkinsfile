@@ -12,14 +12,35 @@ pipeline {
             }
         }
 
-        stage('Check Files') {
+    stages {
+        stage('Prepare') {
             steps {
                 sh '''
-                    echo "Workspace path: ${WORKSPACE}"
-                    pwd
-                    ls -la
-                    # ตรวจสอบโฟลเดอร์ C4 (ถ้ามี)
-                    ls -la C4/ || true
+                    # สร้างไฟล์ config
+                    cat > prometheus.yml <<'EOF'
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'rabbitmq'
+    metrics_path: '/metrics'
+    params:
+      format: ['prometheus']
+    static_configs:
+      - targets: ['rabbitmq-exporter:15692']
+
+  - job_name: 'service'
+    static_configs:
+      - targets: ['pushgateway:9091']
+EOF
+
+                    # ตั้งค่า permission
+                    chmod 644 prometheus.yml
+                    ls -la prometheus.yml
                 '''
             }
         }
