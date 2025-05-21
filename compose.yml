@@ -169,7 +169,9 @@ services:
 
 
   frontend:
-    build: ./frontend 
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: react_frontend
     restart: always
     depends_on:
