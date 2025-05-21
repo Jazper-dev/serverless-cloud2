@@ -76,6 +76,7 @@ services:
       - microservice  # เพิ่ม microservice network
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./C4/prometheus.yml:/etc/prometheus/prometheus.yml
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--web.external-url=http://localhost/prometheus'

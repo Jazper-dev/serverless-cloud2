@@ -12,29 +12,29 @@ pipeline {
             }
         }
 
-        stage('Check prometheus.yml') {
+        stage('Check Files') {
             steps {
-                script {
-                    def filePath = '/var/jenkins_home/workspace/C4/prometheus.yml'
-                    
-                    // เช็คว่าไฟล์มีอยู่หรือไม่
-                    if (fileExists(filePath)) {
-                        echo "File exists: ${filePath}"
-                    } else {
-                        error "File does not exist: ${filePath}. Please check the file path."
-                    }
-                }
+                sh '''
+                    echo "Workspace path: ${WORKSPACE}"
+                    pwd
+                    ls -la
+                    # ตรวจสอบโฟลเดอร์ C4 (ถ้ามี)
+                    ls -la C4/ || true
+                '''
             }
         }
 
-        stage('Stop Old Containers?') {
+        stage('Stop Old Containers') {
             steps {
                 sh 'docker-compose -f ${COMPOSE_FILE} down || true'
             }
         }
 
-        stage('Build & Start Containers.') {
+        stage('Build & Start Containers') {
             steps {
+                // ตัวอย่างการคัดลอกไฟล์ถ้าจำเป็น (แก้ path ตามจริง)
+                sh 'cp C4/prometheus.yml ./prometheus.yml || true'
+                
                 sh 'docker-compose -f ${COMPOSE_FILE} build'
                 sh 'docker-compose -f ${COMPOSE_FILE} up -d'
             }
