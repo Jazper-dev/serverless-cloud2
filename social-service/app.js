@@ -10,10 +10,15 @@ const axios = require('axios');
 // Comments in English for better maintainability
 const app = express();
 
+// app.use(cors({
+//   origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:80'],
+//   credentials: true,
+// }));
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:8080'],
+  origin: '*',
   credentials: true,
 }));
+
 
 app.use(express.json());
 

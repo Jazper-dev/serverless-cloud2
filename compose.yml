@@ -17,9 +17,12 @@ services:
       - webproxy
     ports:
       - "80:80"
+    volumes:
+      - ./reverse-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - frontend
       - api-gateway
+      - pushgateway
 
   rabbitmq:
     image: rabbitmq:4-management
@@ -89,19 +92,32 @@ services:
     ports:
       - "9091:9091"
 
+  # grafana:
+  #   image: grafana/grafana
+  #   container_name: grafana
+  #   networks:
+  #     - microservice
+  #     - webproxy    # ✅ เพิ่มตรงนี้
+  #   ports:
+  #      - "3000:3000"
+  #   environment:
+  #     - GF_SECURITY_ADMIN_PASSWORD=admin
+  #   volumes:
+  #      - grafana_data:/var/lib/grafana
+
   grafana:
     image: grafana/grafana
     container_name: grafana
     networks:
-      - microservice
-      - webproxy    # ✅ เพิ่มตรงนี้
+     - microservice
+     - webproxy 
     ports:
-       - "3000:3000"
+      - "3000:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s/grafana/
     volumes:
-       - grafana_data:/var/lib/grafana
-
+      - grafana_data:/var/lib/grafana
 
   social-service:
     build: ./social-service
@@ -175,6 +191,8 @@ services:
       - microservice
     ports:
       - "8080:80"
+    volumes:
+      - ./api-gateway/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - note-service
       - social-service
