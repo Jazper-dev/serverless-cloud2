@@ -5,6 +5,7 @@ pipeline {
         COMPOSE_FILE = 'compose.yml'
     }
 
+
     stages {
         stage('Checkout') {
             steps {
@@ -12,50 +13,14 @@ pipeline {
             }
         }
 
-    stages {
-        stage('Prepare') {
-            steps {
-                sh '''
-                    # สร้างไฟล์ config
-                    cat > prometheus.yml <<'EOF'
-global:
-  scrape_interval: 5s
-
-scrape_configs:
-  - job_name: 'prometheus'
-    static_configs:
-      - targets: ['localhost:9090']
-
-  - job_name: 'rabbitmq'
-    metrics_path: '/metrics'
-    params:
-      format: ['prometheus']
-    static_configs:
-      - targets: ['rabbitmq-exporter:15692']
-
-  - job_name: 'service'
-    static_configs:
-      - targets: ['pushgateway:9091']
-EOF
-
-                    # ตั้งค่า permission
-                    chmod 644 prometheus.yml
-                    ls -la prometheus.yml
-                '''
-            }
-        }
-
-        stage('Stop Old Containers') {
+        stage('Stop Old Containers?') {
             steps {
                 sh 'docker-compose -f ${COMPOSE_FILE} down || true'
             }
         }
 
-        stage('Build & Start Containers') {
+        stage('Build & Start Containers.') {
             steps {
-                // ตัวอย่างการคัดลอกไฟล์ถ้าจำเป็น (แก้ path ตามจริง)
-                sh 'cp C4/prometheus.yml ./prometheus.yml || true'
-                
                 sh 'docker-compose -f ${COMPOSE_FILE} build'
                 sh 'docker-compose -f ${COMPOSE_FILE} up -d'
             }

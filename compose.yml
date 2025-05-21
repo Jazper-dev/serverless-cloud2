@@ -169,19 +169,32 @@ services:
       - "5004:5004"
 
 
-  frontend:
-    build: ./frontend 
-    container_name: react_frontend
-    restart: always
-    depends_on:
-      - note-db
-    networks:
-      - webproxy
-    ports:
-      - "5173:5173" 
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+  # frontend:
+  #   build: ./frontend 
+  #   container_name: react_frontend
+  #   restart: always
+  #   depends_on:
+  #     - note-db
+  #   networks:
+  #     - webproxy
+  #   ports:
+  #     - "5173:5173" 
+  #   volumes:
+  #     - ./frontend:/app
+  #     - /app/node_modules
+
+    frontend:
+      build: ./frontend
+      container_name: react_frontend
+      restart: always
+      networks:
+        - webproxy
+      ports:
+        - "5173:5173"
+      volumes:
+        - ./frontend:/app
+        - /app/node_modules  # ต้องใช้ร่วมกับ WORKDIR /app ใน Dockerfile
+      working_dir: /app      # กำหนด working directory ให้ชัดเจน
 
   api-gateway:
     build: ./api-gateway
