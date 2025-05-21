@@ -2,8 +2,9 @@ pipeline {
     agent any
 
     environment {
-        COMPOSE_FILE = 'compose.yml'
+        COMPOSE_FILE = 'C4/compose.yml'
     }
+
 
     stages {
         stage('Checkout') {
