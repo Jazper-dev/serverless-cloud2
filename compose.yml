@@ -97,7 +97,7 @@ services:
   #   container_name: grafana
   #   networks:
   #     - microservice
-  #     - webproxy    # ✅ เพิ่มตรงนี้
+  #     - webproxy    # ✅ เพิ่มตรงนี้/
   #   ports:
   #      - "3000:3000"
   #   environment:
