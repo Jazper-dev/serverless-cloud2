@@ -68,19 +68,6 @@ services:
       - "5432:5432"
 
 
-  # prometheus:
-  #   image: prom/prometheus
-  #   container_name: prometheus
-  #   networks:
-  #     - webproxy
-  #     - microservice  # เพิ่ม microservice network
-  #   volumes:
-  #     - ./prometheus.yml:/etc/prometheus/prometheus.yml
-  #   command:
-  #     - '--config.file=/etc/prometheus/prometheus.yml'
-  #     - '--web.external-url=http://localhost/prometheus'
-  #   ports:
-  #   - "9090:9090" 
 
   prometheus:
       container_name: prometheus
@@ -165,33 +152,6 @@ services:
       - rabbitmq
     ports:
       - "5004:5004"
-
-
-  # frontend:
-  #   build: ./frontend 
-  #   container_name: react_frontend
-  #   restart: always
-  #   depends_on:
-  #     - note-db
-  #   networks:
-  #     - webproxy
-  #   ports:
-  #     - "5173:5173" 
-  #   volumes:
-  #     - ./frontend:/app
-  #     - /app/node_modules
-
-  # frontend:
-  #   build: ./frontend 
-  #     image: react_frontend:latest
-  #     ports:
-  #       - "5173:5173"
-  #     networks:
-  #       - frontend
-  #     restart: unless-stopped
-  #     depends_on:
-  #       - note-db
-
 
   frontend:
     container_name: react_frontend
