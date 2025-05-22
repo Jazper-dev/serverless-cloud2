@@ -27,6 +27,7 @@
 //         }
 //     }
 // }
+
 pipeline {
   agent any
 
@@ -39,14 +40,17 @@ pipeline {
     stage('======= Checkout Code =======') {
       steps {
         echo '🧾 Checking out repository...'
-        checkout scm
+        git branch: 'main', url: 'https://github.com/Tawunchai/serverless-cloud.git'
       }
     }
 
-    stage('======= Checkout External Repo (Optional) =======') {
+    stage('======= Verify Project Structure =======') {
       steps {
-        echo '🔄 Cloning external repo (optional)...'
-        git branch: 'main', url: 'https://github.com/Tawunchai/serverless-cloud.git'
+        echo '🔍 Verifying project structure...'
+        sh 'ls -la'
+        sh 'ls -la frontend/ || echo "Frontend directory not found"'
+        sh 'cat frontend/package.json || echo "package.json not found in frontend"'
+        sh 'cat frontend/Dockerfile || echo "Dockerfile not found in frontend"'
       }
     }
 
@@ -54,14 +58,14 @@ pipeline {
       steps {
         echo '🧹 Cleaning up Docker containers and images...'
         sh "docker-compose -f $COMPOSE_FILE down -v || true"
-        sh "docker system prune -a -f || true"
+        sh "docker system prune -f || true"
       }
     }
 
     stage('======= Build and Start Containers =======') {
       steps {
         echo '🚀 Building and starting services...'
-        sh "docker-compose -f $COMPOSE_FILE build $TARGET_SERVICES"
+        sh "docker-compose -f $COMPOSE_FILE build --no-cache $TARGET_SERVICES"
         sh "docker-compose -f $COMPOSE_FILE up -d $TARGET_SERVICES"
       }
     }
@@ -70,10 +74,8 @@ pipeline {
       steps {
         echo '🔍 Showing container status and logs...'
         sh 'docker ps -a'
-        sh 'docker logs frontend || true'
-        sh 'docker logs note-service || true'
-        sh 'docker logs reverse-proxy || true'
-        sh 'docker inspect frontend || true'
+        sh 'docker logs frontend --tail 50 || true'
+        sh 'docker exec frontend ls -la /app || true'
       }
     }
   }
@@ -84,9 +86,10 @@ pipeline {
     }
     failure {
       echo '❌ Deployment failed!'
+      sh 'docker logs frontend --tail 100 || true'
     }
     always {
-      echo '🧼 Post-build cleanup: removing dangling images...'
+      echo '🧼 Post-build cleanup...'
       sh 'docker image prune -f --filter "dangling=true" || true'
     }
   }
