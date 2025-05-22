@@ -90,8 +90,8 @@ services:
       volumes:
         - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
       networks:
-        - monitoring
-        - backend
+        - microservice
+        - webproxy
       restart: unless-stopped
 
   pushgateway:
@@ -200,7 +200,7 @@ services:
     ports:
       - "5173:5173"
     networks:
-      - frontend
+      - webproxy
     restart: unless-stopped
     depends_on:
       - note-db
