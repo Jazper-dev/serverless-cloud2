@@ -32,7 +32,6 @@ pipeline {
 
   environment {
     COMPOSE_FILE = 'compose.yml'
-    DOCKER_BUILDKIT = '0'  // Disable BuildKit if needed
     TARGET_SERVICES = 'frontend note-service social-service auth-service notification-service api-gateway reverse-proxy'
   }
 
@@ -54,7 +53,7 @@ pipeline {
     stage('======= Clean up Old Containers =======') {
       steps {
         echo '🧹 Cleaning up Docker containers and images...'
-        sh "docker compose -f $COMPOSE_FILE down -v || true"
+        sh "docker-compose -f $COMPOSE_FILE down -v || true"
         sh "docker system prune -a -f || true"
       }
     }
@@ -62,8 +61,8 @@ pipeline {
     stage('======= Build and Start Containers =======') {
       steps {
         echo '🚀 Building and starting services...'
-        sh "docker compose -f $COMPOSE_FILE build $TARGET_SERVICES"
-        sh "docker compose -f $COMPOSE_FILE up -d $TARGET_SERVICES"
+        sh "docker-compose -f $COMPOSE_FILE build $TARGET_SERVICES"
+        sh "docker-compose -f $COMPOSE_FILE up -d $TARGET_SERVICES"
       }
     }
 
