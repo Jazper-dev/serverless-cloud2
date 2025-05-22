@@ -181,17 +181,29 @@ services:
   #     - ./frontend:/app
   #     - /app/node_modules
 
+  # frontend:
+  #   build: ./frontend 
+  #     image: react_frontend:latest
+  #     ports:
+  #       - "5173:5173"
+  #     networks:
+  #       - frontend
+  #     restart: unless-stopped
+  #     depends_on:
+  #       - note-db
+
+
   frontend:
-      container_name: frontend
-      build: ./frontend
-      image: clinic-booking/frontend:latest
-      ports:
-        - "5173:5173"
-      networks:
-        - frontend
-      restart: unless-stopped
-      depends_on:
-        - note-db
+    container_name: react_frontend
+    build: ./frontend
+    image: frontend:latest
+    ports:
+      - "5173:5173"
+    networks:
+      - frontend
+    restart: unless-stopped
+    depends_on:
+      - note-db
 
   api-gateway:
       build: ./api-gateway
