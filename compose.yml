@@ -75,8 +75,7 @@ services:
       - webproxy
       - microservice  # เพิ่ม microservice network
     volumes:
-      volumes:
-      - /var/jenkins_home/workspace/C4/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--web.external-url=http://localhost/prometheus'
@@ -169,32 +168,19 @@ services:
       - "5004:5004"
 
 
-  # frontend:
-  #   build: ./frontend 
-  #   container_name: react_frontend
-  #   restart: always
-  #   depends_on:
-  #     - note-db
-  #   networks:
-  #     - webproxy
-  #   ports:
-  #     - "5173:5173" 
-  #   volumes:
-  #     - ./frontend:/app
-  #     - /app/node_modules
-
-    frontend:
-      build: ./frontend
-      container_name: react_frontend
-      restart: always
-      networks:
-        - webproxy
-      ports:
-        - "5173:5173"
-      volumes:
-        - ./frontend:/app
-        - /app/node_modules  # ต้องใช้ร่วมกับ WORKDIR /app ใน Dockerfile
-      working_dir: /app      # กำหนด working directory ให้ชัดเจน
+  frontend:
+    build: ./frontend 
+    container_name: react_frontend
+    restart: always
+    depends_on:
+      - note-db
+    networks:
+      - webproxy
+    ports:
+      - "5173:5173" 
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
 
   api-gateway:
     build: ./api-gateway
