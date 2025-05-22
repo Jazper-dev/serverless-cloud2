@@ -1,29 +1,94 @@
+// pipeline {
+//     agent any
+
+//     environment {
+//         COMPOSE_FILE = 'compose.yml'
+//     }
+
+
+//     stages {
+//         stage('Checkout') {
+//             steps {
+//                 git branch: 'main', url: 'https://github.com/Tawunchai/serverless-cloud.git'
+//             }
+//         }
+
+//         stage('Stop Old Containers?') {
+//             steps {
+//                 sh 'docker-compose -f ${COMPOSE_FILE} down || true'
+//             }
+//         }
+
+//         stage('Build & Start Containers.') {
+//             steps {
+//                 sh 'docker-compose -f ${COMPOSE_FILE} build'
+//                 sh 'docker-compose -f ${COMPOSE_FILE} up -d'
+//             }
+//         }
+//     }
+// }
 pipeline {
-    agent any
+  agent any
 
-    environment {
-        COMPOSE_FILE = 'compose.yml'
+  environment {
+    COMPOSE_FILE = 'compose.yml'
+    DOCKER_BUILDKIT = '0'  // Disable BuildKit if needed
+    TARGET_SERVICES = 'frontend note-service social-service auth-service notification-service api-gateway reverse-proxy'
+  }
+
+  stages {
+    stage('======= Checkout Code =======') {
+      steps {
+        echo '🧾 Checking out repository...'
+        checkout scm
+      }
     }
 
-
-    stages {
-        stage('Checkout') {
-            steps {
-                git branch: 'main', url: 'https://github.com/Tawunchai/serverless-cloud.git'
-            }
-        }
-
-        stage('Stop Old Containers?') {
-            steps {
-                sh 'docker-compose -f ${COMPOSE_FILE} down || true'
-            }
-        }
-
-        stage('Build & Start Containers.') {
-            steps {
-                sh 'docker-compose -f ${COMPOSE_FILE} build'
-                sh 'docker-compose -f ${COMPOSE_FILE} up -d'
-            }
-        }
+    stage('======= Checkout External Repo (Optional) =======') {
+      steps {
+        echo '🔄 Cloning external repo (optional)...'
+        git branch: 'main', url: 'https://github.com/Tawunchai/serverless-cloud.git'
+      }
     }
+
+    stage('======= Clean up Old Containers =======') {
+      steps {
+        echo '🧹 Cleaning up Docker containers and images...'
+        sh "docker compose -f $COMPOSE_FILE down -v || true"
+        sh "docker system prune -a -f || true"
+      }
+    }
+
+    stage('======= Build and Start Containers =======') {
+      steps {
+        echo '🚀 Building and starting services...'
+        sh "docker compose -f $COMPOSE_FILE build $TARGET_SERVICES"
+        sh "docker compose -f $COMPOSE_FILE up -d $TARGET_SERVICES"
+      }
+    }
+
+    stage('======= Debug Container Status =======') {
+      steps {
+        echo '🔍 Showing container status and logs...'
+        sh 'docker ps -a'
+        sh 'docker logs frontend || true'
+        sh 'docker logs note-service || true'
+        sh 'docker logs reverse-proxy || true'
+        sh 'docker inspect frontend || true'
+      }
+    }
+  }
+
+  post {
+    success {
+      echo '✅ Deployment successful!'
+    }
+    failure {
+      echo '❌ Deployment failed!'
+    }
+    always {
+      echo '🧼 Post-build cleanup: removing dangling images...'
+      sh 'docker image prune -f --filter "dangling=true" || true'
+    }
+  }
 }
