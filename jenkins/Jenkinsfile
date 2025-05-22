@@ -28,69 +28,215 @@
 //     }
 // }
 
+// pipeline {
+//   agent any
+
+//   environment {
+//     COMPOSE_FILE = 'compose.yml'
+//     TARGET_SERVICES = 'frontend note-service social-service auth-service notification-service api-gateway reverse-proxy'
+//   }
+
+//   stages {
+//     stage('======= Checkout Code =======') {
+//       steps {
+//         echo '🧾 Checking out repository...'
+//         git branch: 'main', url: 'https://github.com/Tawunchai/serverless-cloud.git'
+//       }
+//     }
+
+//     stage('======= Verify Project Structure =======') {
+//       steps {
+//         echo '🔍 Verifying project structure...'
+//         sh 'ls -la'
+//         sh 'ls -la frontend/ || echo "Frontend directory not found"'
+//         sh 'cat frontend/package.json || echo "package.json not found in frontend"'
+//         sh 'cat frontend/Dockerfile || echo "Dockerfile not found in frontend"'
+//       }
+//     }
+
+//     stage('======= Clean up Old Containers =======') {
+//       steps {
+//         echo '🧹 Cleaning up Docker containers and images...'
+//         sh "docker-compose -f $COMPOSE_FILE down -v || true"
+//         sh "docker system prune -f || true"
+//       }
+//     }
+
+//     stage('======= Build and Start Containers =======') {
+//       steps {
+//         echo '🚀 Building and starting services...'
+//         sh "docker-compose -f $COMPOSE_FILE build --no-cache $TARGET_SERVICES"
+//         sh "docker-compose -f $COMPOSE_FILE up -d $TARGET_SERVICES"
+//       }
+//     }
+
+//     stage('======= Debug Container Status =======') {
+//       steps {
+//         echo '🔍 Showing container status and logs...'
+//         sh 'docker ps -a'
+//         sh 'docker logs frontend --tail 50 || true'
+//         sh 'docker exec frontend ls -la /app || true'
+//       }
+//     }
+//   }
+
+//   post {
+//     success {
+//       echo '✅ Deployment successful!'
+//     }
+//     failure {
+//       echo '❌ Deployment failed!'
+//       sh 'docker logs frontend --tail 100 || true'
+//     }
+//     always {
+//       echo '🧼 Post-build cleanup...'
+//       sh 'docker image prune -f --filter "dangling=true" || true'
+//     }
+//   }
+// }
+
 pipeline {
-  agent any
+    agent any
 
-  environment {
-    COMPOSE_FILE = 'compose.yml'
-    TARGET_SERVICES = 'frontend note-service social-service auth-service notification-service api-gateway reverse-proxy'
-  }
+    stages {
+        stage('======= Checkout Code =======') {
+            steps {
+                echo '🧾 Checking out repository...'
+                git branch: 'main', url: 'https://github.com/Tawunchai/serverless-cloud.git'
+            }
+        }
 
-  stages {
-    stage('======= Checkout Code =======') {
-      steps {
-        echo '🧾 Checking out repository...'
-        git branch: 'main', url: 'https://github.com/Tawunchai/serverless-cloud.git'
-      }
+        stage('======= Verify Files =======') {
+            steps {
+                echo '🔍 Verifying required files...'
+                sh 'ls -la'
+                sh 'ls -la frontend/'
+                sh 'test -f deploy.bat && echo "deploy.bat found" || echo "deploy.bat not found"'
+                sh 'test -f compose.yml && echo "compose.yml found" || echo "compose.yml not found"'
+            }
+        }
+
+        stage('======= Run Deployment Script =======') {
+            steps {
+                echo '🚀 Running deployment script...'
+                script {
+                    // สำหรับ Linux/Unix system ให้แปลง bat เป็น shell script
+                    if (isUnix()) {
+                        sh '''
+                            echo "============================================"
+                            echo "    Docker Compose Deployment Script"
+                            echo "============================================"
+                            
+                            COMPOSE_FILE="compose.yml"
+                            TARGET_SERVICES="frontend note-service social-service auth-service notification-service api-gateway reverse-proxy"
+                            
+                            echo "Starting deployment process..."
+                            echo "Compose file: $COMPOSE_FILE"
+                            echo "Target services: $TARGET_SERVICES"
+                            
+                            # Check if compose file exists
+                            if [ ! -f "$COMPOSE_FILE" ]; then
+                                echo "[ERROR] Compose file $COMPOSE_FILE not found!"
+                                exit 1
+                            fi
+                            
+                            # Check Docker
+                            echo "[INFO] Checking Docker status..."
+                            if ! docker version > /dev/null 2>&1; then
+                                echo "[ERROR] Docker is not running!"
+                                exit 1
+                            fi
+                            echo "[SUCCESS] Docker is running"
+                            
+                            # Stop old containers
+                            echo "[INFO] Stopping old containers..."
+                            docker-compose -f "$COMPOSE_FILE" down -v || echo "[WARNING] Some containers failed to stop"
+                            
+                            # Clean up
+                            echo "[INFO] Cleaning up Docker system..."
+                            docker system prune -f || echo "[WARNING] Cleanup had issues"
+                            
+                            # Build
+                            echo "[INFO] Building containers..."
+                            if ! docker-compose -f "$COMPOSE_FILE" build --no-cache $TARGET_SERVICES; then
+                                echo "[ERROR] Failed to build containers!"
+                                docker logs frontend --tail 50 || true
+                                exit 1
+                            fi
+                            echo "[SUCCESS] Containers built successfully"
+                            
+                            # Start
+                            echo "[INFO] Starting containers..."
+                            if ! docker-compose -f "$COMPOSE_FILE" up -d $TARGET_SERVICES; then
+                                echo "[ERROR] Failed to start containers!"
+                                docker logs frontend --tail 50 || true
+                                exit 1
+                            fi
+                            echo "[SUCCESS] Containers started successfully"
+                            
+                            # Wait and check
+                            echo "[INFO] Waiting for containers to initialize..."
+                            sleep 10
+                            
+                            echo "[INFO] Container status:"
+                            docker ps -a
+                            
+                            echo "[INFO] Recent logs:"
+                            docker logs frontend --tail 20 || true
+                            docker logs note-service --tail 10 || true
+                            
+                            echo "============================================"
+                            echo "[SUCCESS] Deployment completed!"
+                            echo "============================================"
+                        '''
+                    } else {
+                        // สำหรับ Windows
+                        bat 'deploy.bat'
+                    }
+                }
+            }
+        }
+
+        stage('======= Health Check =======') {
+            steps {
+                echo '🏥 Performing health check...'
+                sh '''
+                    echo "Final container status:"
+                    docker ps --format "table {{.Names}}\\t{{.Status}}\\t{{.Ports}}"
+                    
+                    echo "\\nChecking if services are responding..."
+                    sleep 5
+                    
+                    # Test frontend
+                    if docker exec frontend curl -f http://localhost:5173 > /dev/null 2>&1; then
+                        echo "[SUCCESS] Frontend is responding"
+                    else
+                        echo "[WARNING] Frontend may not be ready yet"
+                    fi
+                '''
+            }
+        }
     }
 
-    stage('======= Verify Project Structure =======') {
-      steps {
-        echo '🔍 Verifying project structure...'
-        sh 'ls -la'
-        sh 'ls -la frontend/ || echo "Frontend directory not found"'
-        sh 'cat frontend/package.json || echo "package.json not found in frontend"'
-        sh 'cat frontend/Dockerfile || echo "Dockerfile not found in frontend"'
-      }
+    post {
+        success {
+            echo '✅ Deployment successful!'
+            sh 'docker ps --format "table {{.Names}}\\t{{.Status}}\\t{{.Ports}}"'
+        }
+        failure {
+            echo '❌ Deployment failed!'
+            sh '''
+                echo "=== Error Investigation ==="
+                docker ps -a
+                echo "\\n=== Frontend Logs ==="
+                docker logs frontend --tail 100 || true
+                echo "\\n=== Compose Services Status ==="
+                docker-compose -f compose.yml ps || true
+            '''
+        }
+        always {
+            echo '🧼 Post-deployment cleanup...'
+            sh 'docker image prune -f --filter "dangling=true" || true'
+        }
     }
-
-    stage('======= Clean up Old Containers =======') {
-      steps {
-        echo '🧹 Cleaning up Docker containers and images...'
-        sh "docker-compose -f $COMPOSE_FILE down -v || true"
-        sh "docker system prune -f || true"
-      }
-    }
-
-    stage('======= Build and Start Containers =======') {
-      steps {
-        echo '🚀 Building and starting services...'
-        sh "docker-compose -f $COMPOSE_FILE build --no-cache $TARGET_SERVICES"
-        sh "docker-compose -f $COMPOSE_FILE up -d $TARGET_SERVICES"
-      }
-    }
-
-    stage('======= Debug Container Status =======') {
-      steps {
-        echo '🔍 Showing container status and logs...'
-        sh 'docker ps -a'
-        sh 'docker logs frontend --tail 50 || true'
-        sh 'docker exec frontend ls -la /app || true'
-      }
-    }
-  }
-
-  post {
-    success {
-      echo '✅ Deployment successful!'
-    }
-    failure {
-      echo '❌ Deployment failed!'
-      sh 'docker logs frontend --tail 100 || true'
-    }
-    always {
-      echo '🧼 Post-build cleanup...'
-      sh 'docker image prune -f --filter "dangling=true" || true'
-    }
-  }
 }
